@@ -1,0 +1,42 @@
+version: '3.9'
+services:
+  backend:
+    build:
+      context: ./backend
+    image: bro-backend:latest
+    container_name: bro-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data
+
+  gateway:
+    build:
+      context: ./gateway
+    image: bro-gateway:latest
+    container_name: bro-gateway
+    environment:
+      - PY_BACKEND_URL=http://backend:8000
+    ports:
+      - "4000:4000"
+    depends_on:
+      - backend
+    volumes:
+      - gateway_data:/app/data
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - REACT_APP_API_URL=http://localhost:4000
+    image: bro-frontend:latest
+    container_name: bro-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+
+volumes:
+  gateway_data:
+    driver: local
+
