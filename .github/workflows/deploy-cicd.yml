@@ -1,79 +1,83 @@
-name: Deploy All Apps to Azure
+name: Build & Deploy (Selective)
 
 on:
   push:
-    branches:
-      - main  # change if you use a different branch
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'gateway/**'
+      - '.github/workflows/deploy.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGISTRY_NAME: broregistry123
+  RESOURCE_GROUP: bro-cloud
+  SUBSCRIPTION_ID: b410cc60-6593-4097-aead-271ca654c92e
 
 jobs:
-  build-and-deploy:
+  changes:
+    name: Detect changed services
     runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+            gateway:
+              - 'gateway/**'
 
-    env:
-      ACR_NAME: broregistry123
-      RESOURCE_GROUP: bro-cloud
-      BACKEND_APP: bro-backend-app01
-      FRONTEND_APP: bro-frontend-app01
-      GATEWAY_APP: bro-gateway-app01
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    needs: changes
+    strategy:
+      matrix:
+        include:
+          - folder: frontend
+            app_name: bro-frontend-app01
+          - folder: backend
+            app_name: bro-backend-app01
+          - folder: gateway
+            app_name: bro-gateway-app01
+    if: ${{ needs.changes.outputs[matrix.folder] == 'true' }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 🔹 Login to Azure using service principal credentials
-      - name: Azure Login
+      - name: Log in to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # 🔹 Login to Azure Container Registry
-      - name: Login to Azure Container Registry
-        run: az acr login --name $ACR_NAME
+      - name: Log in to Azure Container Registry
+        run: az acr login --name $REGISTRY_NAME
 
-      # ==========================================
-      # BACKEND
-      # ==========================================
-      - name: Build and Push Backend Image
-        run: |
-          docker build -t $ACR_NAME.azurecr.io/bro-backend:latest ./backend
-          docker push $ACR_NAME.azurecr.io/bro-backend:latest
+      - name: Build & Push image to ACR
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.folder }}
+          file: ./${{ matrix.folder }}/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY_NAME }}.azurecr.io/bro-${{ matrix.folder }}:v1
+          cache-from: type=registry,ref=${{ env.REGISTRY_NAME }}.azurecr.io/bro-${{ matrix.folder }}:cache
+          cache-to: type=registry,ref=${{ env.REGISTRY_NAME }}.azurecr.io/bro-${{ matrix.folder }}:cache,mode=max
 
-      - name: Update Backend Web App
-        run: |
-          az webapp config container set \
-            --name $BACKEND_APP \
-            --resource-group $RESOURCE_GROUP \
-            --docker-custom-image-name $ACR_NAME.azurecr.io/bro-backend:latest \
-            --docker-registry-server-url https://$ACR_NAME.azurecr.io
-
-      # ==========================================
-      # FRONTEND
-      # ==========================================
-      - name: Build and Push Frontend Image
-        run: |
-          docker build -t $ACR_NAME.azurecr.io/bro-frontend:latest ./frontend
-          docker push $ACR_NAME.azurecr.io/bro-frontend:latest
-
-      - name: Update Frontend Web App
-        run: |
-          az webapp config container set \
-            --name $FRONTEND_APP \
-            --resource-group $RESOURCE_GROUP \
-            --docker-custom-image-name $ACR_NAME.azurecr.io/bro-frontend:latest \
-            --docker-registry-server-url https://$ACR_NAME.azurecr.io
-
-      # ==========================================
-      # GATEWAY
-      # ==========================================
-      - name: Build and Push Gateway Image
-        run: |
-          docker build -t $ACR_NAME.azurecr.io/bro-gateway:latest ./gateway
-          docker push $ACR_NAME.azurecr.io/bro-gateway:latest
-
-      - name: Update Gateway Web App
-        run: |
-          az webapp config container set \
-            --name $GATEWAY_APP \
-            --resource-group $RESOURCE_GROUP \
-            --docker-custom-image-name $ACR_NAME.azurecr.io/bro-gateway:latest \
-            --docker-registry-server-url https://$ACR_NAME.azurecr.io
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ matrix.app_name }}
+          images: ${{ env.REGISTRY_NAME }}.azurecr.io/bro-${{ matrix.folder }}:v1
