@@ -10,7 +10,7 @@ function App() {
   const [error, setError] = useState("");
 
   // Prefer env-based API URL for containerized deployments
-  const BACKEND_URL ="https://bro-gateway-app01.azurewebsites.net";
+  const BACKEND_URL ="https://bro-backend-app01.azurewebsites.net";
 
   const handleOptimize = async (requestData) => {
     setLoading(true);
