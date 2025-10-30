@@ -84,8 +84,10 @@ body {
 .results-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  /* A slightly larger gap for better separation */
   gap: 2rem;
-  margin-top: 1rem;
+  /* Align items to the start to prevent unwanted stretching */
+  align-items: start;
 }
 
 .map-container {
@@ -93,17 +95,23 @@ body {
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  height: 500px;
+  /* Use aspect-ratio for a responsive map, or a fixed height like below */
+  height: 60vh; /* vh unit makes it responsive to screen height */
+  min-height: 400px; /* Ensures it's not too small on short screens */
 }
 
 .list-container {
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  /* Match the map container's height and allow internal scrolling */
+  height: 60vh;
+  min-height: 400px;
+  overflow-y: auto; /* Add a scrollbar if content overflows */
 }
 
-@media (max-width: 768px) {
+/* Responsive adjustments for tablets and smaller devices */
+@media (max-width: 992px) {
   .results-layout {
     grid-template-columns: 1fr;
   }
@@ -113,11 +121,24 @@ body {
     gap: 0.5rem;
   }
 
+  /* On smaller screens, let the containers define their own height */
+  .map-container, .list-container {
+    height: 500px; /* A fixed height works well in a single column */
+    min-height: auto;
+  }
+
   .app-header h1 {
     font-size: 2rem;
   }
 
   .app-main {
     padding: 1rem;
+  }
+}
+
+/* Additional adjustments for very small mobile screens */
+@media (max-width: 480px) {
+  .map-container, .list-container {
+    height: 400px; /* Reduce height for small phone screens */
   }
 }
