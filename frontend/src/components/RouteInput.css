@@ -149,16 +149,17 @@
   box-shadow: none;
 }
 
-/* On smaller screens, make the remove button less wide */
 @media (max-width: 768px) {
-  .stop-input-row {
-    position: relative;
-    padding-right: 4rem; /* Make space for the button */
+  .input-row {
+    grid-template-columns: 1fr;
   }
-  .remove-btn {
-    position: absolute;
-    right: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
+  
+  .stop-input-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .route-input-container {
+    padding: 1rem;
   }
 }
