@@ -1,0 +1,83 @@
+name: Build & Deploy (Selective)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'gateway/**'
+      - '.github/workflows/deploy.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGISTRY_NAME: broregistry123
+  RESOURCE_GROUP: bro-cloud
+  SUBSCRIPTION_ID: b410cc60-6593-4097-aead-271ca654c92e
+
+jobs:
+  changes:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+            gateway:
+              - 'gateway/**'
+
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    needs: changes
+    strategy:
+      matrix:
+        include:
+          - folder: frontend
+            app_name: bro-frontend-app01
+          - folder: backend
+            app_name: bro-backend-app01
+          - folder: gateway
+            app_name: bro-gateway-app01
+    if: ${{ needs.changes.outputs[matrix.folder] == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry
+        run: az acr login --name $REGISTRY_NAME
+
+      - name: Build & Push image to ACR
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.folder }}
+          file: ./${{ matrix.folder }}/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY_NAME }}.azurecr.io/bro-${{ matrix.folder }}:v1
+          cache-from: type=registry,ref=${{ env.REGISTRY_NAME }}.azurecr.io/bro-${{ matrix.folder }}:cache
+          cache-to: type=registry,ref=${{ env.REGISTRY_NAME }}.azurecr.io/bro-${{ matrix.folder }}:cache,mode=max
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ matrix.app_name }}
+          images: ${{ env.REGISTRY_NAME }}.azurecr.io/bro-${{ matrix.folder }}:v1
