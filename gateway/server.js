@@ -10,7 +10,7 @@ app.use(express.json());
 app.use(cors({ origin: '*'}));
 
 const PORT = process.env.PORT || 4000;
-const PY_BACKEND_URL = process.env.PY_BACKEND_URL || 'https://bro-backend-app01.azurewebsites.net';
+const PY_BACKEND_URL = process.env.PY_BACKEND_URL || 'https://bro-gateway-app01.azurewebsites.net';
 
 // simple JSON storage
 const dbFile = new JSONFile('./data/db.json');
