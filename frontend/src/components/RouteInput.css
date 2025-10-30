@@ -29,16 +29,21 @@
 }
 
 .input-row {
+  display: flex;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  /* Create two equal columns, but allow them to wrap */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
 }
+
 
 .input-group {
   display: flex;
+  flex: 1 1 180px; /* Allow input groups to grow and shrink */
   flex-direction: column;
   gap: 0.5rem;
 }
+
 
 .input-group label {
   font-weight: 600;
@@ -66,11 +71,10 @@
 }
 
 .stop-input-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr auto;
+  display: flex;
+  flex-wrap: wrap; /* Allow items to wrap to the next line on small screens */
+  align-items: center;
   gap: 1rem;
-  align-items: end;
-  margin-bottom: 1rem;
   padding: 1rem;
   background: white;
   border-radius: 8px;
@@ -145,17 +149,16 @@
   box-shadow: none;
 }
 
+/* On smaller screens, make the remove button less wide */
 @media (max-width: 768px) {
-  .input-row {
-    grid-template-columns: 1fr;
-  }
-  
   .stop-input-row {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+    position: relative;
+    padding-right: 4rem; /* Make space for the button */
   }
-  
-  .route-input-container {
-    padding: 1rem;
+  .remove-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
   }
 }
