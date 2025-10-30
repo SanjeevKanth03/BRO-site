@@ -10,7 +10,7 @@ function App() {
   const [error, setError] = useState("");
 
   // Prefer env-based API URL for containerized deployments
-  const BACKEND_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+  const BACKEND_URL = process.env.REACT_APP_API_URL || "https://bro-backend-app01.azurewebsites.net";
 
   const handleOptimize = async (requestData) => {
     setLoading(true);
