@@ -1,15 +1,20 @@
+# Use a lightweight Python base image
 FROM python:3.11-slim
+
+# Set working directory inside container
 WORKDIR /app
 
-# Copy and install dependencies
+# Copy dependency file first (for Docker layer caching)
 COPY requirements.txt .
+
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
+# Copy the rest of the application code
 COPY . .
 
-# Copy data folder from parent
-COPY ./data ./data
-
+# Expose the backend port
 EXPOSE 8000
+
+# Start the FastAPI server with Uvicorn
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
